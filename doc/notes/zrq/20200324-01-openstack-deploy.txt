@@ -1,0 +1,479 @@
+#
+# <meta:header>
+#   <meta:licence>
+#     Copyright (c) 2020, ROE (http://www.roe.ac.uk/)
+#
+#     This information is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     This information is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#   </meta:licence>
+# </meta:header>
+#
+#zrq-notes-time
+#zrq-notes-indent
+#zrq-notes-crypto
+#zrq-notes-ansible
+#zrq-notes-osformat
+#
+
+    #
+    # Four Kafka VMs each with a 512G data disc.
+    #   4 core, 4G mem, 512G disc
+    # Four Cassandrda VMs each with a 512G data disc.
+    #   4 core, 4G mem, 512G disc
+    #
+    # Four worker VMs.
+    #   4 core, 4G mem, 512G disc
+    #
+
+
+    New GitHub project - cicatricella
+    https://github.com/Zarquan/Cicatricella
+
+
+# -----------------------------------------------------
+# Checkout the project source.
+#[user@desktop]
+
+    cat > "${HOME:?}/cicatricella.env" << 'EOF'
+source "${HOME:?}/projects.env"
+CICATRICELLA_REPO='git@github.com:Zarquan/cicatricella.git'
+CICATRICELLA_HOME="${PROJECTS_ROOT}/LSST-UK/cicatricella"
+CICATRICELLA_CODE="${CICATRICELLA_HOME:?}/github-zrq"
+CICATRICELLA_USER='dmr'
+CICATRICELLA_CLOUD='gaia-prod'
+EOF
+
+    source "${HOME}/cicatricella.env"
+
+    if [ ! -e "${CICATRICELLA_CODE:?}" ]    
+    then
+        pushd "$(dirname ${CICATRICELLA_CODE:?})"
+            git clone "${CICATRICELLA_REPO:?}" "$(basename ${CICATRICELLA_CODE:?})"
+        popd
+    else
+        pushd "${CICATRICELLA_CODE:?}"
+            git pull
+        popd
+    fi
+
+# -----------------------------------------------------
+# Create the initial project directories.
+#[user@desktop]
+
+    source "${HOME}/cicatricella.env"
+
+    pushd "${CICATRICELLA_CODE:?}"
+
+        mkdir doc
+        mkdir doc/notes
+        mkdir doc/notes/zrq
+
+        mkdir src
+        mkdir src/ansible
+
+    popd
+
+
+# -----------------------------------------------------
+# Add Ansible scripts ....
+#[user@desktop]
+
+    ....
+    ....
+    ....
+
+
+            bash
+
+
+# -----------------------------------------------------
+# Create our cloud YAML file.
+#[user@desktop]
+
+cat > "${HOME}/clouds.yaml" << EOF
+
+clouds:
+
+  gaia-dev:
+    auth:
+      auth_url: 'https://cumulus.openstack.hpc.cam.ac.uk:5000/v3'
+      application_credential_id:     '$(secret 'zrq-gaia-dev.APP_CREDENTIAL_ID')'
+      application_credential_secret: '$(secret 'zrq-gaia-dev.APP_CREDENTIAL_SECRET')'
+    region_name: "RegionOne"
+    interface: "public"
+    identity_api_version: 3
+    auth_type: "v3applicationcredential"
+
+  gaia-dev-super:
+    auth:
+      auth_url: 'https://cumulus.openstack.hpc.cam.ac.uk:5000/v3'
+      application_credential_id:     '$(secret 'zrq-gaia-dev-super.APX_CREDENTIAL_ID')'
+      application_credential_secret: '$(secret 'zrq-gaia-dev-super.APX_CREDENTIAL_SECRET')'
+    region_name: "RegionOne"
+    interface: "public"
+    identity_api_version: 3
+    auth_type: "v3applicationcredential"
+
+  gaia-prod:
+    auth:
+      auth_url: 'https://cumulus.openstack.hpc.cam.ac.uk:5000/v3'
+      application_credential_id:     '$(secret 'zrq-gaia-prod.APP_CREDENTIAL_ID')'
+      application_credential_secret: '$(secret 'zrq-gaia-prod.APP_CREDENTIAL_SECRET')'
+    region_name: "RegionOne"
+    interface: "public"
+    identity_api_version: 3
+    auth_type: "v3applicationcredential"
+
+  gaia-prod-super:
+    auth:
+      auth_url: 'https://cumulus.openstack.hpc.cam.ac.uk:5000/v3'
+      application_credential_id:     '$(secret 'zrq-gaia-prod-super.APX_CREDENTIAL_ID')'
+      application_credential_secret: '$(secret 'zrq-gaia-prod-super.APX_CREDENTIAL_SECRET')'
+    region_name: "RegionOne"
+    interface: "public"
+    identity_api_version: 3
+    auth_type: "v3applicationcredential"
+
+EOF
+
+
+# -----------------------------------------------------
+# Allow podman container to use the SSH authentication socket on our desktop.
+# https://osric.com/chris/accidental-developer/2017/11/selinux-audit2why-audit2allow-policy-files/
+# https://stackoverflow.com/a/52326925
+#[user@desktop]
+
+    #
+    # See 20200222-01-ansible-deploy.txt
+    #
+
+
+# -----------------------------------------------------
+# Install podman.
+#[user@desktop]
+
+    sudo dnf install podman
+
+    >   ....
+    >   Installed:
+    >     podman-2:1.7.0-2.fc31.x86_64
+    >     ....
+
+
+
+# -----------------------------------------------------
+# Check our local settings.
+#[user@desktop]
+
+    source "${HOME}/cicatricella.env"
+
+    cat << EOF
+CICATRICELLA_CODE  [${CICATRICELLA_CODE:?}]
+CICATRICELLA_USER  [${CICATRICELLA_USER:?}]
+CICATRICELLA_CLOUD [${CICATRICELLA_CLOUD:?}]
+EOF
+
+--START--
+CICATRICELLA_CODE  [/var/local/projects/LSST-UK/cicatricella/github-zrq]
+CICATRICELLA_USER  [dmr]
+CICATRICELLA_CLOUD [gaia-prod]
+--END--
+
+
+# -----------------------------------------------------
+# Create a local container to work from.
+#[user@desktop]
+
+    podman run \
+        --rm \
+        --tty \
+        --interactive \
+        --hostname ansibler \
+        --env "clouduser=${CICATRICELLA_USER:?}" \
+        --env "cloudname=${CICATRICELLA_CLOUD:?}" \
+        --env "SSH_AUTH_SOCK=/tmp/ssh_auth_sock" \
+        --volume "${SSH_AUTH_SOCK}:/tmp/ssh_auth_sock:rw,z" \
+        --volume "${HOME}/clouds.yaml:/tmp/clouds.yaml:ro,z" \
+        --volume "${CICATRICELLA_CODE:?}/src/ansible:/mnt/ansible:ro,Z" \
+        atolmis/ansible-client:latest \
+        bash
+
+
+--START--
+....
+....
+--END--
+
+
+# -----------------------------------------------------
+# Create our Ansible include vars file.
+#[root@ansibler]
+
+    cat > /tmp/ansible-vars.yml << EOF
+buildtag:  'cica-$(date '+%Y%m%d')'
+cloudname: '${cloudname}'
+EOF
+
+
+# -----------------------------------------------------
+# Link our clouds.cfg file.
+#[root@ansibler]
+
+    cd "${HOME}"
+    ln -sf /tmp/clouds.yaml
+    
+# -----------------------------------------------------
+# Create our internal network.
+#[root@ansibler]
+    
+    ansible-playbook -vvv \
+        --inventory "/mnt/ansible/hosts.yml" \
+        "/mnt/ansible/01-create-network.yml"
+
+
+--START--
+....
+
+ansible-playbook 2.9.2
+  config file = /root/ansible.cfg
+  configured module search path = ['/root/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python3.7/site-packages/ansible
+  executable location = /usr/bin/ansible-playbook
+  python version = 3.7.4 (default, Aug 12 2019, 14:45:07) [GCC 9.1.1 20190605 (Red Hat 9.1.1-2)]
+Using /root/ansible.cfg as config file
+host_list declined parsing /mnt/ansible/hosts.yml as it did not pass its verify_file() method
+script declined parsing /mnt/ansible/hosts.yml as it did not pass its verify_file() method
+Parsed /mnt/ansible/hosts.yml inventory source with yaml plugin
+
+PLAYBOOK: 01-create-network.yml *************************************************************************************************************************************************************************************************************
+1 plays in /mnt/ansible/01-create-network.yml
+Read vars_file '/tmp/ansible-vars.yml'
+Read vars_file '/tmp/ansible-vars.yml'
+Read vars_file '/tmp/ansible-vars.yml'
+
+PLAY [Create our internal network] **********************************************************************************************************************************************************************************************************
+META: ran handlers
+Read vars_file '/tmp/ansible-vars.yml'
+
+TASK [Create our internal network] **********************************************************************************************************************************************************************************************************
+task path: /mnt/ansible/01-create-network.yml:30
+<127.0.0.1> ESTABLISH LOCAL CONNECTION FOR USER: root
+<127.0.0.1> EXEC /bin/sh -c 'echo ~root && sleep 0'
+<127.0.0.1> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462 `" && echo ansible-tmp-1585055159.3507543-63692484523462="` echo /root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462 `" ) && sleep 0'
+Using module file /usr/lib/python3.7/site-packages/ansible/modules/cloud/openstack/os_network.py
+<127.0.0.1> PUT /root/.ansible/tmp/ansible-local-42krvmfpfv/tmp7ze7fqkd TO /root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/AnsiballZ_os_network.py
+<127.0.0.1> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/ /root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/AnsiballZ_os_network.py && sleep 0'
+<127.0.0.1> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/AnsiballZ_os_network.py && sleep 0'
+<127.0.0.1> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/ > /dev/null 2>&1 && sleep 0'
+The full traceback is:
+Traceback (most recent call last):
+  File "/root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/AnsiballZ_os_network.py", line 102, in <module>
+    _ansiballz_main()
+  File "/root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/AnsiballZ_os_network.py", line 94, in _ansiballz_main
+    invoke_module(zipped_mod, temp_path, ANSIBALLZ_PARAMS)
+  File "/root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/AnsiballZ_os_network.py", line 40, in invoke_module
+    runpy.run_module(mod_name='ansible.modules.cloud.openstack.os_network', init_globals=None, run_name='__main__', alter_sys=True)
+  File "/usr/lib64/python3.7/runpy.py", line 205, in run_module
+    return _run_module_code(code, init_globals, run_name, mod_spec)
+  File "/usr/lib64/python3.7/runpy.py", line 96, in _run_module_code
+    mod_name, mod_spec, pkg_name, script_name)
+  File "/usr/lib64/python3.7/runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "/tmp/ansible_os_network_payload_ce7r5tcv/ansible_os_network_payload.zip/ansible/modules/cloud/openstack/os_network.py", line 255, in <module>
+  File "/tmp/ansible_os_network_payload_ce7r5tcv/ansible_os_network_payload.zip/ansible/modules/cloud/openstack/os_network.py", line 205, in main
+  File "/tmp/ansible_os_network_payload_ce7r5tcv/ansible_os_network_payload.zip/ansible/module_utils/openstack.py", line 159, in openstack_cloud_from_module
+  File "/usr/lib/python3.7/site-packages/openstack/__init__.py", line 59, in connect
+    options=options, **kwargs)
+  File "/usr/lib/python3.7/site-packages/openstack/config/__init__.py", line 36, in get_cloud_region
+    return config.get_one(options=parsed_options, **kwargs)
+  File "/usr/lib/python3.7/site-packages/openstack/config/loader.py", line 1059, in get_one
+    auth_plugin = loader.load_from_options(**config['auth'])
+  File "/usr/lib/python3.7/site-packages/keystoneauth1/loading/_plugins/identity/v3.py", line 291, in load_from_options
+    raise exceptions.OptionError(m)
+keystoneauth1.exceptions.auth_plugins.OptionError: You must provide either an application credential ID or an application credential name and user.
+
+fatal: [localhost]: FAILED! => {
+    "changed": false,
+    "module_stderr": "Traceback (most recent call last):\n  File \"/root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/AnsiballZ_os_network.py\", line 102, in <module>\n    _ansiballz_main()\n  File \"/root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/AnsiballZ_os_network.py\", line 94, in _ansiballz_main\n    invoke_module(zipped_mod, temp_path, ANSIBALLZ_PARAMS)\n  File \"/root/.ansible/tmp/ansible-tmp-1585055159.3507543-63692484523462/AnsiballZ_os_network.py\", line 40, in invoke_module\n    runpy.run_module(mod_name='ansible.modules.cloud.openstack.os_network', init_globals=None, run_name='__main__', alter_sys=True)\n  File \"/usr/lib64/python3.7/runpy.py\", line 205, in run_module\n    return _run_module_code(code, init_globals, run_name, mod_spec)\n  File \"/usr/lib64/python3.7/runpy.py\", line 96, in _run_module_code\n    mod_name, mod_spec, pkg_name, script_name)\n  File \"/usr/lib64/python3.7/runpy.py\", line 85, in _run_code\n    exec(code, run_globals)\n  File \"/tmp/ansible_os_network_payload_ce7r5tcv/ansible_os_network_payload.zip/ansible/modules/cloud/openstack/os_network.py\", line 255, in <module>\n  File \"/tmp/ansible_os_network_payload_ce7r5tcv/ansible_os_network_payload.zip/ansible/modules/cloud/openstack/os_network.py\", line 205, in main\n  File \"/tmp/ansible_os_network_payload_ce7r5tcv/ansible_os_network_payload.zip/ansible/module_utils/openstack.py\", line 159, in openstack_cloud_from_module\n  File \"/usr/lib/python3.7/site-packages/openstack/__init__.py\", line 59, in connect\n    options=options, **kwargs)\n  File \"/usr/lib/python3.7/site-packages/openstack/config/__init__.py\", line 36, in get_cloud_region\n    return config.get_one(options=parsed_options, **kwargs)\n  File \"/usr/lib/python3.7/site-packages/openstack/config/loader.py\", line 1059, in get_one\n    auth_plugin = loader.load_from_options(**config['auth'])\n  File \"/usr/lib/python3.7/site-packages/keystoneauth1/loading/_plugins/identity/v3.py\", line 291, in load_from_options\n    raise exceptions.OptionError(m)\nkeystoneauth1.exceptions.auth_plugins.OptionError: You must provide either an application credential ID or an application credential name and user.\n",
+    "module_stdout": "",
+    "msg": "MODULE FAILURE\nSee stdout/stderr for the exact error",
+    "rc": 1
+}
+....
+--END--
+
+    #
+    # Check our config files ..
+    
+    cat /root/ansible.cfg
+
+--START--
+[defaults]
+
+# https://docs.ansible.com/ansible/2.8/reference_appendices/interpreter_discovery.html
+interpreter_python = auto
+
+# https://docs.ansible.com/ansible/latest/user_guide/intro_getting_started.html#host-key-checking
+host_key_checking = False
+--END--
+
+
+    cat /tmp/ansible-vars.yml
+
+--START--
+buildtag:  'cica-20200324'
+cloudname: 'gaia-prod'
+--END--
+
+
+    cat /mnt/ansible/hosts.yml
+
+--START--
+all:
+
+    vars:
+        keypair: 'zrq-gaia-keypair'
+
+        networks:
+            internal: "{{ buildtag }}-internal"
+            external: 'internet'
+....
+....
+--END--
+
+
+    cat /etc/openstack/clouds.yaml 
+
+--START--
+clouds:
+
+  gaia-dev:
+    auth:
+      auth_url: 'https://cumulus.openstack.hpc.cam.ac.uk:5000/v3'
+      application_credential_id:     ''
+      application_credential_secret: ''
+    region_name: "RegionOne"
+    interface: "public"
+    identity_api_version: 3
+    auth_type: "v3applicationcredential"
+....
+--END--
+
+        #
+        # Empty values for our application credentials.
+        # FIXED - bug with the secrets
+        #
+
+
+# -----------------------------------------------------
+# Create our internal network.
+#[root@ansibler]
+    
+    ansible-playbook -vvv \
+        --inventory "/mnt/ansible/hosts.yml" \
+        "/mnt/ansible/01-create-network.yml"
+
+
+
+--START--
+ansible-playbook 2.9.2
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = ['/root/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python3.7/site-packages/ansible
+  executable location = /usr/bin/ansible-playbook
+  python version = 3.7.4 (default, Aug 12 2019, 14:45:07) [GCC 9.1.1 20190605 (Red Hat 9.1.1-2)]
+Using /etc/ansible/ansible.cfg as config file
+host_list declined parsing /mnt/ansible/hosts.yml as it did not pass its verify_file() method
+script declined parsing /mnt/ansible/hosts.yml as it did not pass its verify_file() method
+Parsed /mnt/ansible/hosts.yml inventory source with yaml plugin
+
+PLAYBOOK: 01-create-network.yml *************************************************************************************************************************************************************************************************************
+1 plays in /mnt/ansible/01-create-network.yml
+Read vars_file '/tmp/ansible-vars.yml'
+Read vars_file '/tmp/ansible-vars.yml'
+Read vars_file '/tmp/ansible-vars.yml'
+
+PLAY [Create our internal network] **********************************************************************************************************************************************************************************************************
+META: ran handlers
+Read vars_file '/tmp/ansible-vars.yml'
+
+TASK [Create our internal network] **********************************************************************************************************************************************************************************************************
+task path: /mnt/ansible/01-create-network.yml:30
+<127.0.0.1> ESTABLISH LOCAL CONNECTION FOR USER: root
+<127.0.0.1> EXEC /bin/sh -c 'echo ~root && sleep 0'
+<127.0.0.1> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp/ansible-tmp-1585057615.4689083-13941046722499 `" && echo ansible-tmp-1585057615.4689083-13941046722499="` echo /root/.ansible/tmp/ansible-tmp-1585057615.4689083-13941046722499 `" ) && sleep 0'
+Using module file /usr/lib/python3.7/site-packages/ansible/modules/cloud/openstack/os_network.py
+<127.0.0.1> PUT /root/.ansible/tmp/ansible-local-23ecda3wzs/tmpocjnbufj TO /root/.ansible/tmp/ansible-tmp-1585057615.4689083-13941046722499/AnsiballZ_os_network.py
+<127.0.0.1> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1585057615.4689083-13941046722499/ /root/.ansible/tmp/ansible-tmp-1585057615.4689083-13941046722499/AnsiballZ_os_network.py && sleep 0'
+<127.0.0.1> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1585057615.4689083-13941046722499/AnsiballZ_os_network.py && sleep 0'
+<127.0.0.1> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1585057615.4689083-13941046722499/ > /dev/null 2>&1 && sleep 0'
+The full traceback is:
+  File "/tmp/ansible_os_network_payload_2xc4oo8l/ansible_os_network_payload.zip/ansible/module_utils/openstack.py", line 159, in openstack_cloud_from_module
+    interface=module.params['interface'],
+  File "/usr/lib/python3.7/site-packages/openstack/__init__.py", line 59, in connect
+    options=options, **kwargs)
+  File "/usr/lib/python3.7/site-packages/openstack/config/__init__.py", line 36, in get_cloud_region
+    return config.get_one(options=parsed_options, **kwargs)
+  File "/usr/lib/python3.7/site-packages/openstack/config/loader.py", line 1026, in get_one
+    config = self._get_base_cloud_config(cloud, profile)
+  File "/usr/lib/python3.7/site-packages/openstack/config/loader.py", line 435, in _get_base_cloud_config
+    name=name))
+
+fatal: [localhost]: FAILED! => {
+    "changed": false,
+    "invocation": {
+        "module_args": {
+            "admin_state_up": true,
+            "api_timeout": null,
+            "auth": null,
+            "auth_type": null,
+            "availability_zone": null,
+            "ca_cert": null,
+            "client_cert": null,
+            "client_key": null,
+            "dns_domain": null,
+            "external": false,
+            "interface": "public",
+            "mtu": null,
+            "name": "cica-20200324-internal",
+            "port_security_enabled": null,
+            "project": null,
+            "provider_network_type": null,
+            "provider_physical_network": null,
+            "provider_segmentation_id": null,
+            "region_name": null,
+            "shared": false,
+            "state": "present",
+            "timeout": 180,
+            "validate_certs": null,
+            "wait": true
+        }
+    },
+    "msg": "Cloud gaia-prod was not found."
+}
+--END--
+
+    #
+    # Openstack client failed to pick up the ~/clouds.yaml file.
+    # FIXED link /tmp/clouds.yaml into /etc/openstack
+    #
+    
+# -----------------------------------------------------
+# Link our clouds.cfg file.
+#[root@ansibler]
+
+    mkdir /etc/openstack
+    pushd /etc/openstack
+        ln -sf /tmp/clouds.yaml
+    popd
+
