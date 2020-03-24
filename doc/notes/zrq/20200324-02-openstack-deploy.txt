@@ -70,8 +70,14 @@ EOF
 # Update our git configuration.
 #[user@desktop]
 
-    git config user.name  $(secret github.name)
-    git config user.email $(secret github.mail)
+    source "${HOME}/cicatricella.env"
+
+    pushd "${CICATRICELLA_CODE:?}"
+
+        git config user.name  $(secret github.name)
+        git config user.email $(secret github.mail)
+
+    popd
 
 
 # -----------------------------------------------------
@@ -387,7 +393,31 @@ changed: [localhost] => (item=worker02)
 --END--
 
 
+# -----------------------------------------------------
+# Commit our changes and push them to GitHub.
+#[user@desktop]
 
+    source "${HOME}/cicatricella.env"
+
+    pushd "${CICATRICELLA_CODE:?}"
+
+        git add .
+        git commit -m "Initial set of Ansible scripts"
+        git push
+
+    popd
+
+--START--
+Enumerating objects: 19, done.
+Counting objects: 100% (19/19), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (15/15), done.
+Writing objects: 100% (18/18), 9.54 KiB | 2.38 MiB/s, done.
+Total 18 (delta 7), reused 0 (delta 0)
+remote: Resolving deltas: 100% (7/7), done.
+To github.com:Zarquan/Cicatricella.git
+   88cfd42..fbc4403  master -> master
+--END--
 
 
 
