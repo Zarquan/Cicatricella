@@ -70,7 +70,7 @@
 - hosts: gateway
   gather_facts: false
   tasks:
-    - name: "Deploy our [/etc/hosts] file to our gateway"
+    - name: "Deploy [/etc/hosts] on our gateway"
       become: true
       copy:
         src:  /tmp/internal-hosts
@@ -82,7 +82,7 @@
 - hosts: zookeepers:kafkas:cassandras:workers
   gather_facts: false
   tasks:
-    - name: "Deploy our [/etc/hosts] file to our internal hosts"
+    - name: "Deploy [/etc/hosts] on our internal hosts"
       become: true
       copy:
         src:  /tmp/internal-hosts

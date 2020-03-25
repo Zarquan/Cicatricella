@@ -29,5 +29,11 @@
 - import_playbook: 06-create-workers.yml
 - import_playbook: 07-config-ssh.yml
 - import_playbook: 08-config-dns.yml
+- import_playbook: 09-config-discs.yml
+- import_playbook: 10-update-system.yml
+- import_playbook: 11-install-docker.yml
+- import_playbook: 12-deploy-zookeeper.yml
+- import_playbook: 13-deploy-kafka.yml
+
 
 

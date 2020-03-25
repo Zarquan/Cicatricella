@@ -545,3 +545,12 @@ changed: [worker-02]
 
 
 
+# -----------------------------------------------------
+# Configure our Cassandra nodes.
+#[root@ansibler]
+    
+    ansible-playbook \
+        --inventory "/mnt/ansible/hosts.yml" \
+        "/mnt/ansible/09-config-cassandras.yml"
+
+

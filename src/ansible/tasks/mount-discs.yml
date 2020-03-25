@@ -20,23 +20,36 @@
 #
 #
 
-- name: "Create data volumes for [{{ vmname }}]"
-  os_volume:
-    cloud: "{{ cloudname }}"
-    state: present
-    size: "{{ item.size }}"
-    display_name: "{{ vmname }}-{{ item.name }}"
-  loop:
-    "{{ hostvars[vmname].discs }}"
 
-- name: "Attach data volumes to [{{ vmname }}]"
-  os_server_volume:
-    cloud: "{{ cloudname }}"
-    state: present
-    server: "{{ vmname }}"
-    volume: "{{ vmname }}-{{ item.name }}"
-    device: "{{ item.devpath }}"
-  loop:
-    "{{ hostvars[vmname].discs }}"
+- name: "Create btrfs filesystem on {{disc.devpath}}"
+  become: true
+  filesystem:
+    fstype: btrfs
+    dev: "{{disc.devpath}}"
+
+# TODO Only do this if not already created
+- name: "Create the mount point {{disc.mntpath}}"
+  become: true
+  file:
+    path: "{{disc.mntpath}}"
+    state: directory
+
+# TODO Only do this if not already mounted
+- name: "Create the mount-failed indicator"
+  become: true
+  file:
+    path: "{{disc.mntpath}}/mount-failed"
+    state: touch
+    mode:  u=r,g=r,o=r
+
+# TODO Only do this if not already mounted
+# TODO Mount using UUID rather than device path.
+- name: "Mount device {{disc.devpath}} at {{disc.mntpath}}"
+  become: true
+  mount:
+    src:  "{{disc.devpath}}"
+    path: "{{disc.mntpath}}"
+    fstype: btrfs
+    state:  mounted
 
 

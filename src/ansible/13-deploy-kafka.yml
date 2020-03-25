@@ -1,7 +1,7 @@
 #
 # <meta:header>
 #   <meta:licence>
-#     Copyright (c) 2020, ROE (http://www.roe.ac.uk/)
+#     Copyright (c) 2019, ROE (http://www.roe.ac.uk/)
 #
 #     This information is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -18,25 +18,40 @@
 #   </meta:licence>
 # </meta:header>
 #
+
+#
+# Deploy and start our Kafka services.
 #
 
-- name: "Create data volumes for [{{ vmname }}]"
-  os_volume:
-    cloud: "{{ cloudname }}"
-    state: present
-    size: "{{ item.size }}"
-    display_name: "{{ vmname }}-{{ item.name }}"
-  loop:
-    "{{ hostvars[vmname].discs }}"
+---
+- hosts: kafkas
+  gather_facts: false
+  vars_files:
+    - /tmp/ansible-vars.yml
 
-- name: "Attach data volumes to [{{ vmname }}]"
-  os_server_volume:
-    cloud: "{{ cloudname }}"
-    state: present
-    server: "{{ vmname }}"
-    volume: "{{ vmname }}-{{ item.name }}"
-    device: "{{ item.devpath }}"
-  loop:
-    "{{ hostvars[vmname].discs }}"
+  vars:
+     num_partitions: "{{ 64 }}"
+     retention_ms: "{{ 10 * 60 * 1000 }}"
+     retention_bytes: "{{ -1 }}"
 
+  tasks:
+
+    - name: "Deploy our Kafka compose file"
+      template:
+        src:  'templates/kafka-compose.j2'
+        dest: 'kafka-compose.yml'
+      vars:
+        mntpath: '/data-01'
+        logpath: '/data-01'
+
+    - name: "Start our Kafka services"
+      docker_compose:
+        project_src:
+            '.'
+        files:
+          - 'kafka-compose.yml'
+        services:
+          - emily
+        state:
+          present
 

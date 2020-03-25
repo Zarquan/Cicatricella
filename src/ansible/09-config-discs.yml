@@ -20,23 +20,23 @@
 #
 #
 
-- name: "Create data volumes for [{{ vmname }}]"
-  os_volume:
-    cloud: "{{ cloudname }}"
-    state: present
-    size: "{{ item.size }}"
-    display_name: "{{ vmname }}-{{ item.name }}"
-  loop:
-    "{{ hostvars[vmname].discs }}"
+- name: "Configure our data discs"
+  gather_facts: false
+  hosts: kafkas:cassandras
+  vars_files:
+    - /tmp/ansible-vars.yml
+  tasks:
 
-- name: "Attach data volumes to [{{ vmname }}]"
-  os_server_volume:
-    cloud: "{{ cloudname }}"
-    state: present
-    server: "{{ vmname }}"
-    volume: "{{ vmname }}-{{ item.name }}"
-    device: "{{ item.devpath }}"
-  loop:
-    "{{ hostvars[vmname].discs }}"
+    - name: "Check the btrfs tools are installed"
+      become: true
+      dnf:
+        name:  btrfs-progs
+        state: latest
+
+    - name: "Configure data volumes for {{ inventory_hostname }}"
+      include_tasks: tasks/mount-discs.yml
+      loop: "{{ hostvars[ inventory_hostname ].discs }}"
+      loop_control:
+        loop_var: disc
 
 
