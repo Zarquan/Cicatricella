@@ -509,14 +509,19 @@ ok: [gateway]
 PLAY [zookeepers:kafkas:cassandras:workers] *************************************************************************************************************************************************************************************************
 
 TASK [Deploy our [/etc/hosts] file to our internal hosts] ***********************************************************************************************************************************************************************************
-ok: [zookeeper-02]
-ok: [cassandra-01]
-ok: [zookeeper-01]
-ok: [kafka-01]
-ok: [kafka-02]
-ok: [cassandra-02]
-ok: [worker-02]
-ok: [worker-01]
+changed: [kafka-01]
+changed: [kafka-02]
+changed: [zookeeper-01]
+changed: [zookeeper-02]
+changed: [zookeeper-03]
+changed: [kafka-03]
+changed: [kafka-04]
+changed: [cassandra-01]
+changed: [cassandra-03]
+changed: [cassandra-02]
+changed: [cassandra-04]
+changed: [worker-01]
+changed: [worker-02]
 --END--
 
 
