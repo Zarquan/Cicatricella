@@ -20,29 +20,23 @@
 #
 #
 
-- name: "Create local SSH config for Ansible client"
-  gather_facts: false
-  hosts: localhost
-  vars_files:
-    - /tmp/ansible-vars.yml
-  tasks:
+- name: "Create data volumes for [{{ vmname }}]"
+  os_volume:
+    cloud: "{{ cloudname }}"
+    state: present
+    size: "{{ item.size }}"
+    display_name: "{{ vmname }}-{{ item.name }}"
+  loop:
+    "{{ hostvars[vmname].discs }}"
 
-    - name: "Check our local SSH directory"
-      file:
-        path: "{{ lookup('env','HOME') }}/.ssh"
-        mode: 'u=rwx,g=rx,o=rx'
-        state: directory
+- name: "Attach data volumes to [{{ vmname }}]"
+  os_server_volume:
+    cloud: "{{ cloudname }}"
+    state: present
+    server: "{{ vmname }}"
+    volume: "{{ vmname }}-{{ item.name }}"
+    device: "{{ item.device }}"
+  loop:
+    "{{ hostvars[vmname].discs }}"
 
-    - name: "Discover our gateway node"
-      os_server_info:
-        cloud:  "{{ cloudname }}"
-        server: "gateway*"
-      register:
-        gatenodes
-
-    - name: "Generate our local SSH config"
-      template:
-        src:  "templates/ssh-ansible.j2"
-        dest: "{{ lookup('env','HOME') }}/.ssh/ansible-config"
-        mode: 'u=rw,g=,o='
 

@@ -30,48 +30,62 @@
     - name: "Discover our gateway nodes"
       os_server_info:
         cloud:  "{{ cloudname }}"
-        server: "{{ buildtag }}-gateway*"
+        server: "gateway*"
       register:
-        gatewaynodes
+        gatenodes
 
-    - name: "Discover our master nodes"
+    - name: "Discover our Zookeeper nodes"
       os_server_info:
         cloud:  "{{ cloudname }}"
-        server: "{{ buildtag }}-master*"
+        server: "zook*"
       register:
-        masternodes
+        zooknodes
+
+    - name: "Discover our Kafka nodes"
+      os_server_info:
+        cloud:  "{{ cloudname }}"
+        server: "kafka*"
+      register:
+        kafknodes
+
+    - name: "Discover our Cassandra nodes"
+      os_server_info:
+        cloud:  "{{ cloudname }}"
+        server: "cass*"
+      register:
+        cassnodes
 
     - name: "Discover our worker nodes"
       os_server_info:
         cloud:  "{{ cloudname }}"
-        server: "{{ buildtag }}-worker*"
+        server: "work*"
       register:
-        workernodes
+        worknodes
 
     - name: "Generate our DNS hosts file"
       template:
         src:  'templates/dns-hosts.j2'
-        dest: "/tmp/aglais-hosts"
+        dest: "/tmp/internal-hosts"
 
 - hosts: gateway
   gather_facts: false
   tasks:
-    - name: "Deploy [/etc/hosts] to our gateway"
+    - name: "Deploy our [/etc/hosts] file to our gateway"
       become: true
       copy:
-        src:  /tmp/aglais-hosts
+        src:  /tmp/internal-hosts
         dest: /etc/hosts
         owner: root
         group: root
         mode: u=rw,g=r,o=r
 
-- hosts: kafkas:cassandras:workers
+- hosts: zookeepers:kafkas:cassandras:workers
   gather_facts: false
   tasks:
-    - name: "Deploy [/etc/hosts] file to our internal hosts"
+    - name: "Deploy our [/etc/hosts] file to our internal hosts"
       become: true
       copy:
-        src:  /tmp/aglais-hosts
+        src:  /tmp/internal-hosts
         dest: /etc/hosts
         owner: root
         group: root

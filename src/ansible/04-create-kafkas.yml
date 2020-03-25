@@ -50,7 +50,7 @@
       os_server:
         cloud: "{{ cloudname }}"
         state: present
-        name:     "{{ buildtag }}-{{ item }}"
+        name:     "{{ item }}"
         image:    "{{ hostvars[item]['image']  }}"
         flavor:   "{{ hostvars[item]['flavor'] }}"
         network:  "{{ networks['internal'] }}"
@@ -64,4 +64,10 @@
         "{{ groups['kafkas'] }}"
       register:
         kafkanodes
+
+    - name: "Create our Kafka data volumes"
+      include_tasks: tasks/openstack-volumes.yml
+      loop: "{{ groups['kafkas'] }}"
+      loop_control:
+        loop_var: vmname
 

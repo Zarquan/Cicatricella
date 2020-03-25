@@ -1,0 +1,73 @@
+#
+# <meta:header>
+#   <meta:licence>
+#     Copyright (c) 2020, ROE (http://www.roe.ac.uk/)
+#
+#     This information is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     This information is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#   </meta:licence>
+# </meta:header>
+#
+#
+
+# Global settings
+ForwardX11   no
+ForwardAgent yes
+PasswordAuthentication no
+ServerAliveInterval 60
+ServerAliveCountMax 5
+
+# Primary gateway node.
+Host gateway
+    User {{ clouduser }}
+    HostName {{ gatenodes.openstack_servers[0].accessIPv4 }}
+    ControlPath ~/.ssh/%r@%h:%p
+    ControlMaster auto
+    ControlPersist 5m
+
+# Zookeeper nodes.
+Host{% for hostname in groups['zookeepers'] %} {{ hostname }}{% endfor %}
+
+    User {{ clouduser }}
+    ProxyCommand ssh -W %h:%p -l {{ clouduser }} -F {{ lookup('env','HOME') }}/.ssh/ansible-config gateway
+    ControlPath ~/.ssh/%r@%h:%p
+    ControlMaster auto
+    ControlPersist 5m
+
+# Kafka nodes.
+Host{% for hostname in groups['kafkas'] %} {{ hostname }}{% endfor %}
+
+    User {{ clouduser }}
+    ProxyCommand ssh -W %h:%p -l {{ clouduser }} -F {{ lookup('env','HOME') }}/.ssh/ansible-config gateway
+    ControlPath ~/.ssh/%r@%h:%p
+    ControlMaster auto
+    ControlPersist 5m
+
+# Cassandra nodes.
+Host{% for hostname in groups['cassandras'] %} {{ hostname }}{% endfor %}
+
+    User {{ clouduser }}
+    ProxyCommand ssh -W %h:%p -l {{ clouduser }} -F {{ lookup('env','HOME') }}/.ssh/ansible-config gateway
+    ControlPath ~/.ssh/%r@%h:%p
+    ControlMaster auto
+    ControlPersist 5m
+
+# Worker nodes.
+Host{% for hostname in groups['workers'] %} {{ hostname }}{% endfor %}
+
+    User {{ clouduser }}
+    ProxyCommand ssh -W %h:%p -l {{ clouduser }} -F {{ lookup('env','HOME') }}/.ssh/ansible-config gateway
+    ControlPath ~/.ssh/%r@%h:%p
+    ControlMaster auto
+    ControlPersist 5m
+

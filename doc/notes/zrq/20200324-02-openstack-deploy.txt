@@ -233,6 +233,7 @@ CICATRICELLA_CLOUD [gaia-prod]
     cat > /tmp/ansible-vars.yml << EOF
 buildtag:  'cica-$(date '+%Y%m%d')'
 cloudname: '${cloudname}'
+clouduser: 'fedora'
 EOF
 
 
@@ -245,6 +246,23 @@ EOF
     pushd /etc/openstack
         ln -sf /tmp/clouds.yaml
     popd
+
+
+# -----------------------------------------------------
+# Link our ansible.cfg file.
+#[root@ansibler]
+
+    pushd /root/
+        ln -s /mnt/ansible/ansible.cfg
+    popd
+
+  
+# -----------------------------------------------------
+# Run the scripts from our home directory.
+# (needed to pick up ansible.cfg)
+#[root@ansibler]
+  
+    cd /root/
 
     
 # -----------------------------------------------------
@@ -318,8 +336,8 @@ TASK [Add a security rule to allow SSH from our gateway] ***********************
 changed: [localhost]
 
 TASK [Create our Zookeeper nodes] ***********************************************************************************************************************************************************************************************************
-changed: [localhost] => (item=zookeeper01)
-changed: [localhost] => (item=zookeeper02)
+changed: [localhost] => (item=zookeeper-01)
+changed: [localhost] => (item=zookeeper-02)
 --END--
 
 
@@ -335,14 +353,34 @@ changed: [localhost] => (item=zookeeper02)
 PLAY [Create our Kafka nodes] ***************************************************************************************************************************************************************************************************************
 
 TASK [Create a security group for our Kafka nodes] ******************************************************************************************************************************************************************************************
-ok: [localhost]
+changed: [localhost]
 
 TASK [Add a security rule to allow SSH from our gateway] ************************************************************************************************************************************************************************************
-ok: [localhost]
+changed: [localhost]
 
 TASK [Create our Kafka nodes] ***************************************************************************************************************************************************************************************************************
-changed: [localhost] => (item=kafka01)
-changed: [localhost] => (item=kafka02)
+changed: [localhost] => (item=kafka-01)
+changed: [localhost] => (item=kafka-02)
+
+TASK [Create our Kafka data volumes] ********************************************************************************************************************************************************************************************************
+included: /mnt/ansible/tasks/openstack-volumes.yml for localhost
+included: /mnt/ansible/tasks/openstack-volumes.yml for localhost
+
+TASK [Create data volumes for [kafka-01]] ***************************************************************************************************************************************************************************************************
+changed: [localhost] => (item={'name': 'data-01', 'device': '/dev/sdb', 'size': 25})
+changed: [localhost] => (item={'name': 'data-02', 'device': '/dev/sdc', 'size': 25})
+
+TASK [Attach data volumes to [kafka-01]] ****************************************************************************************************************************************************************************************************
+changed: [localhost] => (item={'name': 'data-01', 'device': '/dev/sdb', 'size': 25})
+changed: [localhost] => (item={'name': 'data-02', 'device': '/dev/sdc', 'size': 25})
+
+TASK [Create data volumes for [kafka-02]] ***************************************************************************************************************************************************************************************************
+changed: [localhost] => (item={'name': 'data-01', 'device': '/dev/sdb', 'size': 25})
+changed: [localhost] => (item={'name': 'data-02', 'device': '/dev/sdc', 'size': 25})
+
+TASK [Attach data volumes to [kafka-02]] ****************************************************************************************************************************************************************************************************
+changed: [localhost] => (item={'name': 'data-01', 'device': '/dev/sdb', 'size': 25})
+changed: [localhost] => (item={'name': 'data-02', 'device': '/dev/sdc', 'size': 25})
 --END--
 
 
@@ -354,7 +392,6 @@ changed: [localhost] => (item=kafka02)
         --inventory "/mnt/ansible/hosts.yml" \
         "/mnt/ansible/05-create-cassandras.yml"
 
-
 --START--
 PLAY [Create our Cassandra nodes] ***********************************************************************************************************************************************************************************************************
 
@@ -365,8 +402,28 @@ TASK [Add a security rule to allow ssh from our gateway] ***********************
 changed: [localhost]
 
 TASK [Create our Cassandra nodes] ***********************************************************************************************************************************************************************************************************
-changed: [localhost] => (item=cassandra01)
-changed: [localhost] => (item=cassandra02)
+changed: [localhost] => (item=cassandra-01)
+changed: [localhost] => (item=cassandra-02)
+
+TASK [Create our Cassandra data volumes] ****************************************************************************************************************************************************************************************************
+included: /mnt/ansible/tasks/openstack-volumes.yml for localhost
+included: /mnt/ansible/tasks/openstack-volumes.yml for localhost
+
+TASK [Create data volumes for [cassandra-01]] ***********************************************************************************************************************************************************************************************
+changed: [localhost] => (item={'name': 'data-01', 'device': '/dev/sdb', 'size': 25})
+changed: [localhost] => (item={'name': 'data-02', 'device': '/dev/sdc', 'size': 25})
+
+TASK [Attach data volumes to [cassandra-01]] ************************************************************************************************************************************************************************************************
+changed: [localhost] => (item={'name': 'data-01', 'device': '/dev/sdb', 'size': 25})
+changed: [localhost] => (item={'name': 'data-02', 'device': '/dev/sdc', 'size': 25})
+
+TASK [Create data volumes for [cassandra-02]] ***********************************************************************************************************************************************************************************************
+changed: [localhost] => (item={'name': 'data-01', 'device': '/dev/sdb', 'size': 25})
+changed: [localhost] => (item={'name': 'data-02', 'device': '/dev/sdc', 'size': 25})
+
+TASK [Attach data volumes to [cassandra-02]] ************************************************************************************************************************************************************************************************
+changed: [localhost] => (item={'name': 'data-01', 'device': '/dev/sdb', 'size': 25})
+changed: [localhost] => (item={'name': 'data-02', 'device': '/dev/sdc', 'size': 25})
 --END--
 
 
@@ -388,8 +445,78 @@ TASK [Add a security rule to allow ssh from our gateway] ***********************
 changed: [localhost]
 
 TASK [Create our worker nodes] **************************************************************************************************************************************************************************************************************
-changed: [localhost] => (item=worker01)
-changed: [localhost] => (item=worker02)
+changed: [localhost] => (item=worker-01)
+changed: [localhost] => (item=worker-02)
+--END--
+
+
+# -----------------------------------------------------
+# Create our local SSH config.
+#[root@ansibler]
+    
+    ansible-playbook \
+        --inventory "/mnt/ansible/hosts.yml" \
+        "/mnt/ansible/07-config-ssh.yml"
+
+--START--
+PLAY [Create local SSH config for Ansible client] *******************************************************************************************************************************************************************************************
+
+TASK [Check our local SSH directory] ********************************************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Discover our gateway node] ************************************************************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Generate our local SSH config] ********************************************************************************************************************************************************************************************************
+changed: [localhost]
+--END--
+
+
+# -----------------------------------------------------
+# Create our internal [/etc/hosts] files.
+#[root@ansibler]
+    
+    ansible-playbook \
+        --inventory "/mnt/ansible/hosts.yml" \
+        "/mnt/ansible/08-config-dns.yml"
+
+--START--
+PLAY [Deploy [/etc/hosts] files to resolve names] *******************************************************************************************************************************************************************************************
+
+TASK [Discover our gateway nodes] ***********************************************************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Discover our Zookeeper nodes] *********************************************************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Discover our Kafka nodes] *************************************************************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Discover our Cassandra nodes] *********************************************************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Discover our worker nodes] ************************************************************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Generate our DNS hosts file] **********************************************************************************************************************************************************************************************************
+ok: [localhost]
+
+PLAY [gateway] ******************************************************************************************************************************************************************************************************************************
+
+TASK [Deploy our [/etc/hosts] file to our gateway] ******************************************************************************************************************************************************************************************
+ok: [gateway]
+
+PLAY [zookeepers:kafkas:cassandras:workers] *************************************************************************************************************************************************************************************************
+
+TASK [Deploy our [/etc/hosts] file to our internal hosts] ***********************************************************************************************************************************************************************************
+ok: [zookeeper-02]
+ok: [cassandra-01]
+ok: [zookeeper-01]
+ok: [kafka-01]
+ok: [kafka-02]
+ok: [cassandra-02]
+ok: [worker-02]
+ok: [worker-01]
 --END--
 
 
@@ -403,20 +530,12 @@ changed: [localhost] => (item=worker02)
 
         git add .
         git commit -m "Initial set of Ansible scripts"
+        git commit -m "...."
         git push
 
     popd
 
 --START--
-Enumerating objects: 19, done.
-Counting objects: 100% (19/19), done.
-Delta compression using up to 4 threads
-Compressing objects: 100% (15/15), done.
-Writing objects: 100% (18/18), 9.54 KiB | 2.38 MiB/s, done.
-Total 18 (delta 7), reused 0 (delta 0)
-remote: Resolving deltas: 100% (7/7), done.
-To github.com:Zarquan/Cicatricella.git
-   88cfd42..fbc4403  master -> master
 --END--
 
 

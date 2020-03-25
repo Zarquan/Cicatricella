@@ -50,7 +50,7 @@
       os_server:
         cloud: "{{ cloudname }}"
         state: present
-        name:     "{{ buildtag }}-{{ item }}"
+        name:     "{{ item }}"
         image:    "{{ hostvars[item]['image']  }}"
         flavor:   "{{ hostvars[item]['flavor'] }}"
         network:  "{{ networks['internal'] }}"
@@ -64,4 +64,11 @@
         "{{ groups['cassandras'] }}"
       register:
         cassnodes
+
+    - name: "Create our Cassandra data volumes"
+      include_tasks: tasks/openstack-volumes.yml
+      loop: "{{ groups['cassandras'] }}"
+      loop_control:
+        loop_var: vmname
+
 
