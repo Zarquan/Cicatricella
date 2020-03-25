@@ -46,28 +46,6 @@
         port_range_max: 22
         remote_group: "{{ security['gateway'] }}"
 
-    - name: "Add a security rule to allow 9092:9093 from other Kafkas"
-      os_security_group_rule:
-        cloud: "{{ cloudname }}"
-        state: present
-        security_group: "{{ kafkasecurity.id }}"
-        direction: 'ingress'
-        protocol:  'tcp'
-        port_range_min: 9092
-        port_range_max: 9093
-        remote_group: "{{ security['kafkas'] }}"
-
-    - name: "Add a security rule to allow 9092:9093 from workers"
-      os_security_group_rule:
-        cloud: "{{ cloudname }}"
-        state: present
-        security_group: "{{ kafkasecurity.id }}"
-        direction: 'ingress'
-        protocol:  'tcp'
-        port_range_min: 9092
-        port_range_max: 9093
-        remote_group: "{{ security['workers'] }}"
-
     - name: "Create our Kafka nodes"
       os_server:
         cloud: "{{ cloudname }}"

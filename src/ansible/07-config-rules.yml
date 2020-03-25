@@ -1,0 +1,114 @@
+#
+# <meta:header>
+#   <meta:licence>
+#     Copyright (c) 2020, ROE (http://www.roe.ac.uk/)
+#
+#     This information is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     This information is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#   </meta:licence>
+# </meta:header>
+#
+#
+
+- name: "Create our Zookeeper nodes"
+  gather_facts: false
+  hosts: localhost
+  vars_files:
+    - /tmp/ansible-vars.yml
+  tasks:
+
+    - name: "Locate the Zookeeper security group"
+      os_security_group:
+        cloud: "{{ cloudname }}"
+        state: present
+        name: "{{ security['zookeepers'] }}"
+      register:
+        zooksecurity
+
+    - name: "Add a security rule to allow port 2888 from other Zookeepers"
+      os_security_group_rule:
+        cloud: "{{ cloudname }}"
+        state: present
+        security_group: "{{ zooksecurity.id }}"
+        direction: 'ingress'
+        protocol:  'tcp'
+        port_range_min: 2888
+        port_range_max: 2888
+        remote_group: "{{ security['zookeepers'] }}"
+
+    - name: "Add a security rule to allow port 3888 from other Zookeepers"
+      os_security_group_rule:
+        cloud: "{{ cloudname }}"
+        state: present
+        security_group: "{{ zooksecurity.id }}"
+        direction: 'ingress'
+        protocol:  'tcp'
+        port_range_min: 3888
+        port_range_max: 3888
+        remote_group: "{{ security['zookeepers'] }}"
+
+    - name: "Add a security rule to allow port 2181 from Kafkas"
+      os_security_group_rule:
+        cloud: "{{ cloudname }}"
+        state: present
+        security_group: "{{ zooksecurity.id }}"
+        direction: 'ingress'
+        protocol:  'tcp'
+        port_range_min: 2181
+        port_range_max: 2181
+        remote_group: "{{ security['kafkas'] }}"
+
+    - name: "Add a security rule to allow port 2181 from workers"
+      os_security_group_rule:
+        cloud: "{{ cloudname }}"
+        state: present
+        security_group: "{{ security['zookeepers'] }}"
+        direction: 'ingress'
+        protocol:  'tcp'
+        port_range_min: 2181
+        port_range_max: 2181
+        remote_group: "{{ security['workers'] }}"
+
+
+    - name: "Locate the Kafka security group"
+      os_security_group:
+        cloud: "{{ cloudname }}"
+        state: present
+        name: "{{ security['kafkas'] }}"
+      register:
+        kafkasecurity
+
+    - name: "Add a security rule to allow ports 9092:9093 from other Kafkas"
+      os_security_group_rule:
+        cloud: "{{ cloudname }}"
+        state: present
+        security_group: "{{ kafkasecurity.id }}"
+        direction: 'ingress'
+        protocol:  'tcp'
+        port_range_min: 9092
+        port_range_max: 9093
+        remote_group: "{{ security['kafkas'] }}"
+
+    - name: "Add a security rule to allow ports 9092:9093 from workers"
+      os_security_group_rule:
+        cloud: "{{ cloudname }}"
+        state: present
+        security_group: "{{ security['kafkas'] }}"
+        direction: 'ingress'
+        protocol:  'tcp'
+        port_range_min: 9092
+        port_range_max: 9093
+        remote_group: "{{ security['workers'] }}"
+
+
+
