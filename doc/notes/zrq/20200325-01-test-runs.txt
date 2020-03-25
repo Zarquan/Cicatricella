@@ -1,0 +1,229 @@
+#
+# <meta:header>
+#   <meta:licence>
+#     Copyright (c) 2020, ROE (http://www.roe.ac.uk/)
+#
+#     This information is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     This information is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#   </meta:licence>
+# </meta:header>
+#
+#zrq-notes-time
+#zrq-notes-indent
+#zrq-notes-crypto
+#zrq-notes-ansible
+#zrq-notes-osformat
+#
+
+
+# -----------------------------------------------------
+# Run an Ansible client to work from.
+#[user@desktop]
+
+    source "${HOME}/cicatricella.env"
+
+    podman run \
+        --rm \
+        --tty \
+        --interactive \
+        --hostname ansibler \
+        --env "clouduser=${CICATRICELLA_USER:?}" \
+        --env "cloudname=${CICATRICELLA_CLOUD:?}" \
+        --env "SSH_AUTH_SOCK=/tmp/ssh_auth_sock" \
+        --volume "${SSH_AUTH_SOCK}:/tmp/ssh_auth_sock:rw,z" \
+        --volume "${HOME}/clouds.yaml:/tmp/clouds.yaml:ro,z" \
+        --volume "${CICATRICELLA_CODE:?}/src/ansible:/mnt/ansible:ro,Z" \
+        atolmis/ansible-client:latest \
+        bash
+
+# -----------------------------------------------------
+#[root@ansibler] 
+
+    cat > /tmp/ansible-vars.yml << EOF
+buildtag:  'cica-$(date '+%Y%m%d')'
+cloudname: '${cloudname}'
+clouduser: 'fedora'
+EOF
+
+# -----------------------------------------------------
+# Link our clouds.cfg file.
+# https://docs.ansible.com/ansible/latest/reference_appendices/config.html#the-configuration-file
+#[root@ansibler]
+
+    mkdir /etc/openstack
+    pushd /etc/openstack
+        ln -sf /tmp/clouds.yaml
+    popd
+
+# -----------------------------------------------------
+# Link our ansible.cfg file.
+#[root@ansibler]
+
+    pushd /root/
+        ln -s /mnt/ansible/ansible.cfg
+    popd
+
+# -----------------------------------------------------
+# Run the scripts from our home directory.
+# (needed to pick up ansible.cfg)
+#[root@ansibler]
+
+    cd /root/
+
+# -----------------------------------------------------
+# Generate our local SSH config
+#[root@ansibler]
+
+    ansible-playbook \
+        --inventory "/mnt/ansible/hosts.yml" \
+        "/mnt/ansible/08-config-ssh.yml" 
+
+
+# -----------------------------------------------------
+# Login to a worker node
+#[root@ansibler]
+
+    ssh \
+        -F ~/.ssh/ansible-config \
+        worker-01
+
+
+# -----------------------------------------------------
+# -----------------------------------------------------
+# Add our account to the users group.
+#[user@worker-01]
+
+    sudo usermod -a -G users fedora
+
+    #
+    # Logout and delete the SSH control chanel.
+    # Login again ..
+    #
+
+# -----------------------------------------------------
+# Create project directories.
+#[user@worker-01]
+
+    cat > "${HOME}/project.env" << 'EOF'
+BUILD_ROOT=/var/local/build    
+CACHE_ROOT=/var/local/cache
+EOF
+
+    source "${HOME}/project.env"
+    if [ ! -e "${BUILD_ROOT:?}" ]
+        then         
+            sudo mkdir "${BUILD_ROOT:?}"
+            sudo chgrp users  "${BUILD_ROOT:?}"
+            sudo chmod g+rwxs "${BUILD_ROOT:?}"
+        fi
+
+    sudo chgrp users "${BUILD_ROOT:?}"
+    sudo chmod g+rwx "${BUILD_ROOT:?}"
+
+    if [ ! -e "${CACHE_ROOT:?}" ]
+        then
+            sudo mkdir "${CACHE_ROOT:?}"
+            sudo chgrp users  "${CACHE_ROOT:?}"
+            sudo chmod g+rwxs "${CACHE_ROOT:?}"
+        fi
+
+    sudo chgrp users "${CACHE_ROOT:?}"
+    sudo chmod g+rwx "${CACHE_ROOT:?}"
+
+
+# -----------------------------------------------------
+# Download a data file.
+#[user@worker-01]
+
+    sudo dnf install wget
+
+    source "${HOME}/project.env"
+
+    pushd "${CACHE_ROOT:?}"
+        mkdir data
+        pushd data
+
+            wget https://ztf.uw.edu/alerts/public/ztf_public_20191206.tar.gz
+            wget https://ztf.uw.edu/alerts/public/ztf_public_20200125.tar.gz
+            wget https://ztf.uw.edu/alerts/public/ztf_public_20191229.tar.gz
+    
+        popd
+    popd
+
+# -----------------------------------------------------
+# Checkout a copy of our source code.
+#[user@worker-01]
+
+    cat > "${HOME}/phymatopus.env" << 'EOF'
+source "${HOME}/project.env"
+PHYMATOPUS_REPO=git@github.com:Zarquan/phymatopus.git
+PHYMATOPUS_CODE=${BUILD_ROOT}/phymatopus
+EOF
+
+    source "${HOME}/phymatopus.env"
+    if [ ! -e "${PHYMATOPUS_CODE:?}" ]
+        then
+            pushd "$(dirname ${PHYMATOPUS_CODE:?})"
+                git clone "${PHYMATOPUS_REPO:?}" "$(basename ${PHYMATOPUS_CODE:?})"
+            popd
+        else
+            pushd "${PHYMATOPUS_CODE:?}"
+                git pull
+            popd
+        fi
+
+# -----------------------------------------------------
+# Run an instance of our builder.
+#[user@worker-01]
+
+    source "${HOME}/phymatopus.env"
+    docker run \
+        --rm \
+        --tty \
+        --interactive \
+        --user "$(id -u):$(id -g)" \
+        --volume "/var/local/cache:/var/local/cache:rw,z" \
+        --volume "/var/local/build:/var/local/build:rw,z" \
+        --volume "${SSH_AUTH_SOCK}:/tmp/ssh_auth_sock:rw,z" \
+        --volume "${secretsh}:/bin/secret" \
+        "firethorn/builder:latest" \
+        'bash'
+
+
+# -----------------------------------------------------
+# Run our data import test.
+#[user@builder]
+
+    PHYMATOPUS_CODE=/var/local/build/phymatopus/
+
+    pushd "${PHYMATOPUS_CODE:?}"
+        pushd kafka-tools
+
+            mvn clean compile
+
+            avrofile=/var/local/cache/data/ztf_public_20191206.tar.gz
+            #avrofile=/var/local/cache/data/ztf_public_20200125.tar.gz
+
+            topic=test-topic-003
+            looplimit=10000
+            threads=4
+            server=kafka-01:9092
+
+            mvn test \
+                -D 'test=ZtfTarGzipToKafkaTestCase' \
+                -D "phymatopus.kafka.writer.topic=${topic:?}" \
+                -D "phymatopus.kafka.loader.avrofile=${avrofile:?}" \
+                -D "phymatopus.kafka.writer.servers=${server:?}"
+
+
+
