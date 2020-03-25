@@ -36,13 +36,23 @@
         dest: 'zookeeper-compose.yml'
 
     - name: "Start our Zookeeper services"
-      docker_compose:
-        project_src:
-            '.'
-        files:
-          - 'zookeeper-compose.yml'
-        services:
-          - courtney
-        state:
-          present
+      command:
+        argv:
+          - "docker-compose"
+          - "-f"
+          - "zookeeper-compose.yml"
+          - "up"
+          - "-d"
+
+# https://github.com/psf/requests/issues/4160
+#    - name: "Start our Zookeeper services"
+#      docker_compose:
+#        project_src:
+#            '.'
+#        files:
+#          - 'zookeeper-compose.yml'
+#        services:
+#          - courtney
+#        state:
+#          present
 

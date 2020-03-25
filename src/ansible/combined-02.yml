@@ -21,18 +21,18 @@
 #
 
 ---
-- import_playbook: 01-create-network.yml
-- import_playbook: 02-create-gateway.yml
-- import_playbook: 03-create-zookeepers.yml
-- import_playbook: 04-create-kafkas.yml
-- import_playbook: 05-create-cassandras.yml
-- import_playbook: 06-create-workers.yml
-- import_playbook: 07-config-rules.yml
-- import_playbook: 08-config-ssh.yml
-- import_playbook: 09-config-dns.yml
-- import_playbook: 10-config-discs.yml
-- import_playbook: 11-update-system.yml
-- import_playbook: 12-install-docker.yml
+#- import_playbook: 01-create-network.yml
+#- import_playbook: 02-create-gateway.yml
+#- import_playbook: 03-create-zookeepers.yml
+#- import_playbook: 04-create-kafkas.yml
+#- import_playbook: 05-create-cassandras.yml
+#- import_playbook: 06-create-workers.yml
+#- import_playbook: 07-config-rules.yml
+#- import_playbook: 08-config-ssh.yml
+#- import_playbook: 09-config-dns.yml
+#- import_playbook: 10-config-discs.yml
+#- import_playbook: 11-update-system.yml
+#- import_playbook: 12-install-docker.yml
 - import_playbook: 13-deploy-zookeeper.yml
 - import_playbook: 14-deploy-kafka.yml
 

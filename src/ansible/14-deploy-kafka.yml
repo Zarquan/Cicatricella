@@ -45,13 +45,23 @@
         logpath: '/data-01'
 
     - name: "Start our Kafka services"
-      docker_compose:
-        project_src:
-            '.'
-        files:
-          - 'kafka-compose.yml'
-        services:
-          - emily
-        state:
-          present
+      command:
+        argv:
+          - "docker-compose"
+          - "-f"
+          - "kafka-compose.yml"
+          - "up"
+          - "-d"
+
+# https://github.com/psf/requests/issues/4160
+#    - name: "Start our Kafka services"
+#      docker_compose:
+#        project_src:
+#            '.'
+#        files:
+#          - 'kafka-compose.yml'
+#        services:
+#          - emily
+#        state:
+#          present
 
